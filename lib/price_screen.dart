@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'coin_data.dart';
 import 'dart:io' show Platform;
+import 'coin_data.dart';
 
 class PriceScreen extends StatefulWidget {
   @override
@@ -9,7 +10,7 @@ class PriceScreen extends StatefulWidget {
 }
 
 class _PriceScreenState extends State<PriceScreen> {
-  String selectedValue = 'USD';
+  String currency = 'AUD';
 
 //ANDROID DROP DOWN BUTTON
   DropdownButton<String> androidDropdownButton() {
@@ -19,11 +20,12 @@ class _PriceScreenState extends State<PriceScreen> {
       dropdownItems.add(newItem);
     }
     return DropdownButton<String>(
-        value: selectedValue,
+        value: currency,
         items: dropdownItems,
         onChanged: (value) {
           setState(() {
-            selectedValue = value;
+            currency = value;
+            getData();
           });
         });
   }
@@ -38,17 +40,38 @@ class _PriceScreenState extends State<PriceScreen> {
     return CupertinoPicker(
         backgroundColor: Colors.lightBlue,
         itemExtent: 28.0,
-        onSelectedItemChanged: (index) {
-          print(index);
+        onSelectedItemChanged: (selectedIndex) {
+          print(selectedIndex);
+          setState(() {
+            currency = currenciesList[selectedIndex];
+            getData();
+          });
         },
         children: pickerItems);
+  }
+
+  String coinPrice = '?';
+
+  void getData() async {
+    try {
+      double data = await CoinData().getHttp(currency);
+      setState(() {
+        coinPrice = data.toStringAsFixed(0);
+      });
+    } catch (e) {}
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getData();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('🤑 Coin Ticker'),
+        title: Text('Crypto'),
       ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -56,23 +79,24 @@ class _PriceScreenState extends State<PriceScreen> {
         children: <Widget>[
           Padding(
             padding: EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0),
-            child: Card(
-              color: Colors.lightBlueAccent,
-              elevation: 5.0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
-                child: Text(
-                  '1 BTC = ? USD',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    color: Colors.white,
-                  ),
+            child: Column(
+              children: [
+                CoinWidget(
+                  coinPrice: coinPrice,
+                  currency: currency,
+                  crypto: 'ETH',
                 ),
-              ),
+                CoinWidget(
+                  coinPrice: coinPrice,
+                  currency: currency,
+                  crypto: 'BTC',
+                ),
+                CoinWidget(
+                  coinPrice: coinPrice,
+                  currency: currency,
+                  crypto: 'LTC',
+                )
+              ],
             ),
           ),
           Container(
@@ -82,6 +106,41 @@ class _PriceScreenState extends State<PriceScreen> {
               color: Colors.lightBlue,
               child: Platform.isIOS ? iOSPicker() : androidDropdownButton()),
         ],
+      ),
+    );
+  }
+}
+
+class CoinWidget extends StatelessWidget {
+  const CoinWidget(
+      {Key key,
+      @required this.coinPrice,
+      @required this.currency,
+      @required this.crypto})
+      : super(key: key);
+
+  final String coinPrice;
+  final String currency;
+  final String crypto;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Colors.lightBlueAccent,
+      elevation: 5.0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10.0),
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
+        child: Text(
+          '$crypto price = $coinPrice $currency',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 20.0,
+            color: Colors.white,
+          ),
+        ),
       ),
     );
   }
